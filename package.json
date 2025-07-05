@@ -1,0 +1,32 @@
+{
+  "name": "postcode-scraper-app",
+  "version": "1.0.0",
+  "description": "Web application for scraping Malaysian postcode data with CAPTCHA handling",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "echo 'No build step required'",
+    "test": "echo 'No tests specified'",
+    "deploy:heroku": "git push heroku main",
+    "logs:heroku": "heroku logs --tail",
+    "docker:build": "docker build -t postcode-scraper .",
+    "docker:run": "docker run -p 3000:3000 postcode-scraper",
+    "docker:compose": "docker-compose up -d"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "fs-extra": "^11.1.1",
+    "cors": "^2.8.5"
+  },
+  "keywords": ["postcode", "scraper", "malaysia", "web-app"],
+  "author": "Your Name",
+  "license": "MIT"
+}

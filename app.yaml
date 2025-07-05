@@ -1,0 +1,17 @@
+version: 2
+
+build:
+  os: ubuntu-20.04
+  commands:
+    - echo "Installing dependencies..."
+    - npm ci
+
+run:
+  runtime: node18
+  commands:
+    - echo "Starting Postcode Scraper..."
+    - npm start
+
+  network:
+    - port: 3000
+      http: /
