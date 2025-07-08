@@ -3,8 +3,8 @@ import * as cheerio from 'cheerio';
 import fs from 'fs-extra';
 
 const filename = 'pahang_15'
-const inputFile = `./data/${filename}.json`
-const outputFile = `./data/${filename}_details.json`;
+const inputFile = `../data/${filename}.json`
+const outputFile = `../data/${filename}_details.json`;
 
 // User agents to rotate for better stealth (more diverse and recent)
 const userAgents = [

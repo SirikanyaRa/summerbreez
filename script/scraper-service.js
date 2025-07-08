@@ -75,24 +75,72 @@ const fetchWithRetry = async (url, maxRetries = 3, baseDelay = 2000, sessionId, 
         sessionCookies = response.headers['set-cookie'].join('; ');
       }
       
-      // Enhanced CAPTCHA/blocking detection
-      if (data.includes('captcha') || data.includes('hCaptcha') || data.includes('blocked') || 
-          data.includes('403') || data.includes('rate limit') || data.includes('too many requests') ||
-          data.includes('security check') || data.includes('verify') || data.length < 1000) {
+      // Enhanced CAPTCHA/blocking detection with more specific patterns
+      const captchaPatterns = [
+        /captcha/i,
+        /hCaptcha/i,
+        /recaptcha/i,
+        /cloudflare.*challenge/i,
+        /security check/i,
+        /verify you are human/i,
+        /access denied/i,
+        /rate limit exceeded/i,
+        /too many requests/i,
+        /temporarily blocked/i,
+        /please complete.*verification/i
+      ];
+      
+      // More specific detection - only trigger if we have clear CAPTCHA indicators
+      const hasSpecificCaptchaPattern = captchaPatterns.some(pattern => pattern.test(data));
+      const isBlockingResponse = response.status === 403 || response.status === 429;
+      const isEmptyOrErrorPage = data.length < 500 || 
+                                (data.includes('error') && data.length < 2000) ||
+                                data.includes('Service Unavailable');
+      
+      // Check if the page has normal postcode.my content
+      const hasNormalContent = data.includes('postcode.my') || 
+                              data.includes('postal code') || 
+                              data.includes('Location Information') ||
+                              data.includes('GPS') ||
+                              data.includes('office');
+      
+      const isCaptchaPage = (hasSpecificCaptchaPattern || isBlockingResponse || isEmptyOrErrorPage) && !hasNormalContent;
+      
+      // Check if CAPTCHA detection is bypassed for this session
+      const bypassDetection = session?.bypassCaptchaDetection || false;
+      
+      if (isCaptchaPage && !bypassDetection) {
+        console.log(`CAPTCHA/Blocking detected for ${url}:`, {
+          status: response.status,
+          contentLength: data.length,
+          hasSpecificCaptchaPattern,
+          isBlockingResponse,
+          isEmptyOrErrorPage,
+          hasNormalContent,
+          matchedPatterns: captchaPatterns.filter(pattern => pattern.test(data)).map(p => p.source)
+        });
         
         if (session) {
           session.captchaRequired = true;
           session.status = 'captcha_required';
-          session.message = `🛑 CAPTCHA detected for ${url}. Please solve it manually and click "Continue" to resume.`;
+          session.message = `🛑 CAPTCHA or blocking detected for ${url}. Please solve it manually and click "Continue" to resume.`;
           session.captchaUrl = url;
         }
+        
+        console.log(`Waiting for CAPTCHA resolution for session ${sessionId}`);
         
         // Wait for CAPTCHA resolution
         await waitForCaptchaResolution(sessionId, activeSessions);
         
+        console.log(`CAPTCHA resolved for session ${sessionId}, retrying request`);
+        
         // Try again after CAPTCHA resolution
         const finalResponse = await axios.get(url, config);
         return finalResponse.data;
+      } else if (isCaptchaPage && bypassDetection) {
+        console.log(`CAPTCHA detection bypassed for ${url} (Detection disabled for testing)`);
+      } else {
+        console.log(`Normal page detected for ${url} (Length: ${data.length}, Status: ${response.status})`);
       }
       
       return data;
@@ -115,22 +163,27 @@ const fetchWithRetry = async (url, maxRetries = 3, baseDelay = 2000, sessionId, 
 // Wait for CAPTCHA resolution
 const waitForCaptchaResolution = async (sessionId, activeSessions) => {
   const session = activeSessions.get(sessionId);
+  console.log(`Starting CAPTCHA wait for session ${sessionId}`);
   
   return new Promise((resolve) => {
     const checkInterval = setInterval(() => {
       const currentSession = activeSessions.get(sessionId);
       if (currentSession && !currentSession.captchaRequired) {
+        console.log(`CAPTCHA resolved for session ${sessionId}`);
         clearInterval(checkInterval);
-        resolve();
+        // Add a small delay to ensure UI updates
+        setTimeout(resolve, 1000);
       }
     }, 1000); // Check every second
     
     // Timeout after 10 minutes
     setTimeout(() => {
+      console.log(`CAPTCHA resolution timeout for session ${sessionId}`);
       clearInterval(checkInterval);
       if (session) {
-        session.message = 'CAPTCHA resolution timeout. Please try again.';
+        session.message = '⏰ CAPTCHA resolution timeout. Please try again.';
         session.status = 'error';
+        session.captchaRequired = false;
       }
       resolve();
     }, 600000);

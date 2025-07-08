@@ -19,6 +19,18 @@ app.use(express.static('public'));
 // Store active scraping sessions
 const activeSessions = new Map();
 
+// Session cleanup - remove completed/errored sessions after 1 hour
+setInterval(() => {
+  const oneHourAgo = Date.now() - (60 * 60 * 1000);
+  for (const [sessionId, session] of activeSessions.entries()) {
+    const sessionTime = parseInt(sessionId);
+    if (sessionTime < oneHourAgo && (session.status === 'completed' || session.status === 'error')) {
+      activeSessions.delete(sessionId);
+      console.log(`Cleaned up old session: ${sessionId}`);
+    }
+  }
+}, 5 * 60 * 1000); // Check every 5 minutes
+
 // API Routes
 
 // Get all available data files
@@ -68,7 +80,7 @@ app.get('/api/data/:filename', async (req, res) => {
 app.post('/api/scrape/:filename', async (req, res) => {
   try {
     const { filename } = req.params;
-    const { selectedRecords } = req.body;
+    const { selectedRecords, bypassCaptchaDetection } = req.body;
     
     const sessionId = Date.now().toString();
     
@@ -80,6 +92,7 @@ app.post('/api/scrape/:filename', async (req, res) => {
       results: [],
       errors: [],
       captchaRequired: false,
+      bypassCaptchaDetection: bypassCaptchaDetection || false,
       message: 'Initializing scraping process...'
     });
 
@@ -88,7 +101,8 @@ app.post('/api/scrape/:filename', async (req, res) => {
     
     res.json({ 
       sessionId,
-      message: 'Scraping process started. Monitor progress using the session ID.'
+      message: 'Scraping process started. Monitor progress using the session ID.',
+      bypassCaptchaDetection: bypassCaptchaDetection || false
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to start scraping process' });
@@ -116,11 +130,89 @@ app.post('/api/captcha-solved/:sessionId', (req, res) => {
     return res.status(404).json({ error: 'Session not found' });
   }
   
+  console.log(`CAPTCHA resolution request received for session ${sessionId}`);
+  
   // Update session to indicate CAPTCHA was solved
   session.captchaRequired = false;
-  session.message = 'CAPTCHA solved! Resuming scraping process...';
+  session.status = 'running';
+  session.message = '✅ CAPTCHA solved! Resuming scraping process...';
   
-  res.json({ message: 'CAPTCHA resolution acknowledged' });
+  console.log(`CAPTCHA marked as resolved for session ${sessionId}`);
+  
+  res.json({ 
+    message: 'CAPTCHA resolution acknowledged',
+    status: session.status,
+    captchaRequired: session.captchaRequired
+  });
+});
+
+// Get completed files (files with _details suffix)
+app.get('/api/completed-files', async (req, res) => {
+  try {
+    const dataDir = path.join(__dirname, 'data');
+    const files = await fs.readdir(dataDir);
+    const completedFiles = files.filter(file => file.endsWith('_details.json'));
+    
+    const fileInfo = await Promise.all(
+      completedFiles.map(async (file) => {
+        const filePath = path.join(dataDir, file);
+        const stats = await fs.stat(filePath);
+        const data = await fs.readJson(filePath);
+        return {
+          filename: file,
+          recordCount: data.length,
+          fileSize: Math.round(stats.size / 1024), // Size in KB
+          lastModified: stats.mtime.toISOString(),
+          downloadUrl: `/api/download/${file}`
+        };
+      })
+    );
+
+    res.json(fileInfo);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to read completed files' });
+  }
+});
+
+// Download a specific completed file
+app.get('/api/download/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const filePath = path.join(__dirname, 'data', filename);
+    
+    if (!await fs.pathExists(filePath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Set headers for file download
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Send the file
+    res.sendFile(filePath);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to download file' });
+  }
+});
+
+// Debug endpoint to check all active sessions
+app.get('/api/debug/sessions', (req, res) => {
+  const sessions = Array.from(activeSessions.entries()).map(([id, session]) => ({
+    sessionId: id,
+    status: session.status,
+    progress: session.progress,
+    total: session.total,
+    captchaRequired: session.captchaRequired,
+    message: session.message,
+    captchaUrl: session.captchaUrl || null,
+    resultCount: session.results?.length || 0,
+    errorCount: session.errors?.length || 0
+  }));
+  
+  res.json({ 
+    activeSessions: sessions.length,
+    sessions 
+  });
 });
 
 // Serve the main page
