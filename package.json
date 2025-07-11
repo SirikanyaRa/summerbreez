@@ -14,7 +14,6 @@
     "test:simple": "node test-simple.js",
     "test:deployment": "node test-deployment.js",
     "lint": "echo 'No linting configured'",
-    "prestart": "node syntax-check.js",
     "postinstall": "echo 'Dependencies installed successfully'",
     "deploy:heroku": "git push heroku main",
     "deploy:railway": "railway up",
@@ -39,10 +38,7 @@
     "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
     "fs-extra": "^11.1.1",
-    "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "compression": "^1.7.4",
-    "dotenv": "^16.3.1"
+    "cors": "^2.8.5"
   },
   "keywords": ["postcode", "scraper", "malaysia", "web-app"],
   "author": "Your Name",
