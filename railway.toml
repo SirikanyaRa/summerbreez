@@ -1,0 +1,27 @@
+# Railway Configuration
+# This file configures Railway deployment settings
+
+# Build settings
+buildCommand = "npm ci --production"
+startCommand = "npm start"
+
+# Environment variables for Railway
+[environment]
+NODE_ENV = "production"
+PORT = "$PORT"
+
+# Health check configuration
+[healthcheck]
+path = "/health"
+interval = "30s"
+timeout = "10s"
+
+# Resource allocation
+[resources]
+memory = "512Mi"
+cpu = "0.5"
+
+# Auto-scaling (optional)
+[scaling]
+minReplicas = 1
+maxReplicas = 3

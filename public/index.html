@@ -278,11 +278,6 @@
                 <button id="testCaptcha" class="button" style="background: #28a745; margin-left: 10px;" onclick="testCaptchaAlert()">
                     🧪 Test CAPTCHA Alert
                 </button>
-                
-                <!-- Bypass CAPTCHA detection for testing -->
-                <button id="bypassCaptcha" class="button" style="background: #dc3545; margin-left: 10px;" onclick="toggleCaptchaDetection()">
-                    🚫 Disable CAPTCHA Detection
-                </button>
             </div>
 
             <!-- Progress Section -->
@@ -349,8 +344,6 @@
         let selectedFile = null;
         let currentSessionId = null;
         let progressInterval = null;
-        // Global flag to control CAPTCHA detection
-        let captchaDetectionEnabled = true;
 
         // Load data files on page load
         document.addEventListener('DOMContentLoaded', () => {
@@ -449,8 +442,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
-                        selectedRecords: null, // Scrape all records
-                        bypassCaptchaDetection: !captchaDetectionEnabled
+                        selectedRecords: null // Scrape all records
                     })
                 });
                 
@@ -463,10 +455,6 @@
                 
                 // Start monitoring progress
                 progressInterval = setInterval(checkProgress, 2000);
-                
-                if (!captchaDetectionEnabled) {
-                    addStatusMessage('⚠️ Starting scraping with CAPTCHA detection disabled', 'warning');
-                }
                 
             } catch (error) {
                 addStatusMessage(`Error starting scraping: ${error.message}`, 'error');
@@ -596,6 +584,7 @@
                 case 'completed': return 'success';
                 case 'error': return 'error';
                 case 'captcha_required': return 'warning';
+                case 'pre_checking': return 'info';
                 default: return 'info';
             }
         }
@@ -697,22 +686,6 @@
         function testCaptchaAlert() {
             showCaptchaAlert('https://postcode.my/test-captcha-url.html');
             addStatusMessage('🧪 Test CAPTCHA alert shown. Click "Continue Scraping" to test resolution.', 'warning');
-        }
-        
-        // Toggle CAPTCHA detection for testing
-        function toggleCaptchaDetection() {
-            captchaDetectionEnabled = !captchaDetectionEnabled;
-            const button = document.getElementById('bypassCaptcha');
-            
-            if (captchaDetectionEnabled) {
-                button.textContent = '🚫 Disable CAPTCHA Detection';
-                button.style.background = '#dc3545';
-                addStatusMessage('✅ CAPTCHA detection enabled', 'info');
-            } else {
-                button.textContent = '✅ Enable CAPTCHA Detection';
-                button.style.background = '#28a745';
-                addStatusMessage('⚠️ CAPTCHA detection disabled for testing', 'warning');
-            }
         }
     </script>
 </body>

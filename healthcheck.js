@@ -4,7 +4,7 @@ import http from 'http';
 const options = {
   hostname: 'localhost',
   port: process.env.PORT || 3000,
-  path: '/api/data-files',
+  path: '/health',
   method: 'GET',
   timeout: 3000
 };
@@ -28,6 +28,10 @@ req.on('timeout', () => {
   console.log('Health check timeout');
   req.destroy();
   process.exit(1);
+});
+
+req.setTimeout(3000);
+req.end();
 });
 
 req.end();

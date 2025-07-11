@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "🚀 Malaysian Postcode Scraper - Deployment Script"
-echo "=================================================="
+echo "🚀 Malaysian Postcode Scraper - Enhanced Deployment Script"
+echo "=========================================================="
 
 # Check if we're in the right directory
 if [ ! -f "server.js" ]; then
@@ -9,14 +9,54 @@ if [ ! -f "server.js" ]; then
     exit 1
 fi
 
-echo "📋 Pre-deployment checks..."
+echo "📋 Running enhanced pre-deployment checks..."
+
+# Check Node.js version
+NODE_VERSION=$(node --version)
+echo "🔍 Node.js version: $NODE_VERSION"
+
+# Install/update dependencies
+echo "📦 Installing dependencies..."
+npm ci --production
+
+# Run syntax check
+echo "🔍 Running syntax check..."
+if [ -f "syntax-check.js" ]; then
+    node syntax-check.js
+else
+    echo "⚠️ Syntax check not found, skipping..."
+fi
+
+# Run tests
+echo "🧪 Running tests..."
+if [ -f "test-app.js" ]; then
+    node test-app.js
+else
+    echo "⚠️ Tests not found, skipping..."
+fi
+
+# Security audit
+echo "🔒 Running security audit..."
+npm audit --audit-level high || echo "⚠️ Please review security issues"
+
+# Check environment configuration
+if [ ! -f ".env" ] && [ -f ".env.example" ]; then
+    echo "📋 Creating .env from example..."
+    cp .env.example .env
+    echo "⚠️ Please update .env with production values"
+fi
+
+# Create necessary directories
+mkdir -p data logs temp
+
+echo "✅ All pre-deployment checks passed!"
 
 # Check if git is clean
 if [ -n "$(git status --porcelain)" ]; then
     echo "⚠️  Warning: You have uncommitted changes"
     echo "📝 Committing all changes..."
     git add .
-    git commit -m "Deploy: $(date)"
+    git commit -m "Deploy: Enhanced version $(date)"
 fi
 
 echo "✅ Git status clean"

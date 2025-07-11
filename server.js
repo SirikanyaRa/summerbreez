@@ -5,16 +5,51 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { scrapePostcodeDetails } from './script/scraper-service.js';
 
+// Production middleware imports
+import helmet from 'helmet';
+import compression from 'compression';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Production security and performance middleware
+if (NODE_ENV === 'production') {
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    },
+  }));
+  app.use(compression());
+}
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${req.method} ${req.path} - ${req.ip || 'unknown'}`);
+  next();
+});
 
 // Store active scraping sessions
 const activeSessions = new Map();
@@ -80,7 +115,7 @@ app.get('/api/data/:filename', async (req, res) => {
 app.post('/api/scrape/:filename', async (req, res) => {
   try {
     const { filename } = req.params;
-    const { selectedRecords, bypassCaptchaDetection } = req.body;
+    const { selectedRecords } = req.body;
     
     const sessionId = Date.now().toString();
     
@@ -92,7 +127,6 @@ app.post('/api/scrape/:filename', async (req, res) => {
       results: [],
       errors: [],
       captchaRequired: false,
-      bypassCaptchaDetection: bypassCaptchaDetection || false,
       message: 'Initializing scraping process...'
     });
 
@@ -101,8 +135,7 @@ app.post('/api/scrape/:filename', async (req, res) => {
     
     res.json({ 
       sessionId,
-      message: 'Scraping process started. Monitor progress using the session ID.',
-      bypassCaptchaDetection: bypassCaptchaDetection || false
+      message: 'Scraping process started. Monitor progress using the session ID.'
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to start scraping process' });
@@ -220,8 +253,68 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
+// Health check endpoint for load balancers
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: NODE_ENV,
+    version: process.env.npm_package_version || '1.0.0'
+  });
+});
+
+// Graceful shutdown handling
+const server = app.listen(PORT, () => {
   console.log(`🚀 Postcode Scraper App running on http://localhost:${PORT}`);
   console.log(`📁 Data files available in: ${path.join(__dirname, 'data')}`);
   console.log(`🔧 Scraper script location: ${path.join(__dirname, 'script')}`);
+  console.log(`🌍 Environment: ${NODE_ENV}`);
+  console.log(`⚡ Node.js version: ${process.version}`);
 });
+
+// Global error handlers
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  gracefulShutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  gracefulShutdown('unhandledRejection');
+});
+
+process.on('SIGTERM', () => {
+  console.log('📡 SIGTERM received');
+  gracefulShutdown('SIGTERM');
+});
+
+process.on('SIGINT', () => {
+  console.log('📡 SIGINT received');
+  gracefulShutdown('SIGINT');
+});
+
+function gracefulShutdown(signal) {
+  console.log(`🔄 Graceful shutdown initiated by ${signal}`);
+  
+  server.close((err) => {
+    if (err) {
+      console.error('❌ Error during server close:', err);
+      process.exit(1);
+    }
+    
+    console.log('✅ Server closed successfully');
+    
+    // Clean up active sessions
+    activeSessions.clear();
+    console.log('🧹 Active sessions cleared');
+    
+    process.exit(0);
+  });
+  
+  // Force exit after 30 seconds
+  setTimeout(() => {
+    console.error('⚠️ Forced exit after timeout');
+    process.exit(1);
+  }, 30000);
+}
