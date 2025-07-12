@@ -18,8 +18,22 @@ const userAgents = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/120.0.0.0'
 ];
 
-// Session management
+// Session management with better cookie handling
 let sessionCookies = '';
+let lastCookieUpdate = Date.now();
+
+// Helper to reset cookies when CAPTCHA is detected
+const resetSessionCookies = () => {
+  sessionCookies = '';
+  lastCookieUpdate = Date.now();
+  console.log('🔄 Session cookies reset due to CAPTCHA detection');
+};
+
+// Helper to check if we should retry with fresh session
+const shouldRetryWithFreshSession = () => {
+  const timeSinceUpdate = Date.now() - lastCookieUpdate;
+  return timeSinceUpdate > 30000; // 30 seconds since last cookie update
+};
 
 // Helper functions
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -70,9 +84,11 @@ const fetchWithRetry = async (url, maxRetries = 3, baseDelay = 2000, sessionId, 
       const response = await axios.get(url, config);
       const { data } = response;
       
-      // Store session cookies
+      // Store session cookies with timestamp
       if (response.headers['set-cookie']) {
         sessionCookies = response.headers['set-cookie'].join('; ');
+        lastCookieUpdate = Date.now();
+        console.log(`🍪 Updated session cookies from ${url}`);
       }
       
       // Enhanced CAPTCHA/blocking detection with more specific patterns
@@ -130,10 +146,20 @@ const fetchWithRetry = async (url, maxRetries = 3, baseDelay = 2000, sessionId, 
           matchedPatterns: captchaPatterns.filter(pattern => pattern.test(data)).map(p => p.source)
         });
         
+        // Reset session cookies when CAPTCHA is detected
+        resetSessionCookies();
+        
         if (session) {
           session.captchaRequired = true;
           session.status = 'captcha_required';
-          session.message = `🛑 CAPTCHA or blocking detected for ${url}. Please solve it manually and click "Continue" to resume.`;
+          session.message = `🛑 CAPTCHA detected for ${url}. Please follow these steps:
+
+1. 📱 Open this exact URL in a NEW TAB: ${url}
+2. 🧩 Solve the CAPTCHA challenge on that page
+3. ✅ After solving, return to this tab and click "Continue"
+
+🔧 IMPORTANT: This will automatically share your solved CAPTCHA session with the scraper.
+⏰ You have 10 minutes to complete this process.`;
           session.captchaUrl = url;
         }
         
@@ -142,11 +168,108 @@ const fetchWithRetry = async (url, maxRetries = 3, baseDelay = 2000, sessionId, 
         // Wait for CAPTCHA resolution
         await waitForCaptchaResolution(sessionId, activeSessions);
         
-        console.log(`CAPTCHA resolved for session ${sessionId}, retrying request`);
+        console.log(`CAPTCHA resolved for session ${sessionId}, implementing session restoration strategy`);
         
-        // Try again after CAPTCHA resolution
-        const finalResponse = await axios.get(url, config);
-        return finalResponse.data;
+        // Check if we have user-provided cookies
+        const currentSession = activeSessions.get(sessionId);
+        
+        if (currentSession && currentSession.userCookies) {
+          console.log(`Using user-provided cookies for ${url}`);
+          
+          // Strategy 1: Use user's actual browser cookies
+          try {
+            const userCookieResponse = await axios.get(url, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Cookie': currentSession.userCookies, // Use user's cookies!
+                'Upgrade-Insecure-Requests': '1',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              },
+              timeout: 30000,
+              maxRedirects: 5,
+              validateStatus: function (status) {
+                return status >= 200 && status < 500;
+              }
+            });
+            
+            console.log(`User cookie request successful for ${url} (Length: ${userCookieResponse.data.length})`);
+            return userCookieResponse.data;
+            
+          } catch (userCookieError) {
+            console.log(`User cookie strategy failed: ${userCookieError.message}, trying fresh session strategy`);
+          }
+        }
+        
+        // Strategy 2: Fresh session approach (fallback)
+        resetSessionCookies();
+        
+        // Give time for CAPTCHA solution to propagate on the server side
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Strategy 3: Try with completely fresh request (no session reuse)
+        console.log(`Attempting fresh session request for ${url}`);
+        
+        try {
+          // Make a completely fresh request
+          const freshResponse = await axios.get(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.5',
+              'Accept-Encoding': 'gzip, deflate, br',
+              'Connection': 'keep-alive',
+              'Upgrade-Insecure-Requests': '1',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            },
+            timeout: 30000,
+            maxRedirects: 5,
+            validateStatus: function (status) {
+              return status >= 200 && status < 500;
+            }
+          });
+          
+          // Update session cookies from fresh response
+          if (freshResponse.headers['set-cookie']) {
+            sessionCookies = freshResponse.headers['set-cookie'].join('; ');
+            lastCookieUpdate = Date.now();
+            console.log(`🍪 Got fresh session cookies after CAPTCHA: ${sessionCookies.substring(0, 100)}...`);
+          }
+          
+          console.log(`Fresh request successful for ${url} (Length: ${freshResponse.data.length})`);
+          return freshResponse.data;
+          
+        } catch (freshError) {
+          console.log(`Fresh session attempt failed: ${freshError.message}, trying minimal fallback strategy`);
+          
+          // Strategy 4: Try with minimal session data
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          const fallbackResponse = await axios.get(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              'Connection': 'keep-alive'
+            },
+            timeout: 30000,
+            validateStatus: function (status) {
+              return status >= 200 && status < 500;
+            }
+          });
+          
+          if (fallbackResponse.headers['set-cookie']) {
+            sessionCookies = fallbackResponse.headers['set-cookie'].join('; ');
+            lastCookieUpdate = Date.now();
+            console.log(`🍪 Got fallback session cookies`);
+          }
+          
+          return fallbackResponse.data;
+        }
       } else {
         console.log(`Normal page detected for ${url} (Length: ${data.length}, Status: ${response.status})`);
       }
@@ -176,10 +299,21 @@ const waitForCaptchaResolution = async (sessionId, activeSessions) => {
   return new Promise((resolve) => {
     const checkInterval = setInterval(() => {
       const currentSession = activeSessions.get(sessionId);
+      
+      // Check if CAPTCHA is resolved
       if (currentSession && !currentSession.captchaRequired) {
         console.log(`CAPTCHA resolved for session ${sessionId}`);
+        
+        // Check if user provided cookies
+        if (currentSession.userCookies) {
+          sessionCookies = currentSession.userCookies;
+          lastCookieUpdate = Date.now();
+          console.log(`🍪 Using user-provided cookies after CAPTCHA resolution`);
+          console.log(`Cookies preview: ${sessionCookies.substring(0, 100)}...`);
+        }
+        
         clearInterval(checkInterval);
-        // Add a small delay to ensure UI updates
+        // Add a delay to ensure UI updates and allow server-side processing
         setTimeout(resolve, 1000);
       }
     }, 1000); // Check every second
@@ -244,30 +378,63 @@ const extractPostcodeData = async (url, sessionId, activeSessions) => {
     if (session) {
       session.captchaRequired = true;
       session.status = 'captcha_required';
-      session.message = `🛑 Short content detected (${html.length} bytes) - likely CAPTCHA or blocking. Please solve it manually and click "Continue" to resume.`;
+      session.message = `🛑 Short content detected (${html.length} bytes) - likely CAPTCHA blocking.
+
+Please follow these steps:
+1. Open this URL in a new browser tab: ${url}
+2. Complete any CAPTCHA challenge that appears
+3. Verify you can see the postcode information page
+4. Return here and click "Continue" to resume scraping
+
+⚠️ Important: Keep the browser tab open and use the same browser session!`;
       session.captchaUrl = url;
       
       console.log(`CAPTCHA handling triggered for session ${sessionId}, URL: ${url}`);
       
+      // Reset session cookies before waiting
+      resetSessionCookies();
+      
       // Wait for CAPTCHA resolution
       await waitForCaptchaResolution(sessionId, activeSessions);
       
-      console.log(`CAPTCHA resolved for ${url}, retrying extraction...`);
+      console.log(`CAPTCHA resolved for ${url}, retrying extraction with fresh session...`);
       
-      // Retry fetching the page after CAPTCHA resolution
+      // Retry fetching the page after CAPTCHA resolution with fresh session
       html = await fetchWithRetry(url, 3, 2000, sessionId, activeSessions);
       
       if (!html || html.length < 3000) {
-        console.log(`Retry still returned short content (${html ? html.length : 0} bytes). Returning empty data.`);
-        return {
-          url,
-          location: '-',
-          city: '-', 
-          state: '-',
-          postcode: '-',
-          gps_lat: '-',
-          gps_lng: '-'
-        };
+        console.log(`Retry still returned short content (${html ? html.length : 0} bytes). CAPTCHA solution may not have worked.`);
+        
+        // One more attempt with completely fresh session
+        resetSessionCookies();
+        try {
+          html = await fetchWithRetry(url, 1, 1000, sessionId, activeSessions);
+          if (html && html.length >= 3000) {
+            console.log(`Third attempt successful - got ${html.length} bytes`);
+          } else {
+            console.log(`All attempts failed. Returning empty data for ${url}`);
+            return {
+              url,
+              location: '-',
+              city: '-', 
+              state: '-',
+              postcode: '-',
+              gps_lat: '-',
+              gps_lng: '-'
+            };
+          }
+        } catch (finalErr) {
+          console.log(`Final retry failed: ${finalErr.message}`);
+          return {
+            url,
+            location: '-',
+            city: '-', 
+            state: '-',
+            postcode: '-',
+            gps_lat: '-',
+            gps_lng: '-'
+          };
+        }
       }
       
       console.log(`Retry successful - got ${html.length} bytes. Continuing with extraction...`);
@@ -562,16 +729,28 @@ const preCaptchaCheck = async (url, sessionId, activeSessions) => {
     
     if (isCaptchaPage) {
       console.log(`CAPTCHA detected during pre-check for ${url}`);
+      
+      // Reset session cookies
+      resetSessionCookies();
+      
       if (session) {
         session.captchaRequired = true;
         session.status = 'captcha_required';
-        session.message = `🛑 CAPTCHA detected before starting. Please solve it manually and click "Continue" to proceed.`;
+        session.message = `🛑 CAPTCHA detected before starting scraping.
+
+Please follow these steps:
+1. Open this URL in a new browser tab: ${url}
+2. Complete any CAPTCHA challenge 
+3. Verify the page loads correctly
+4. Return here and click "Continue" to start scraping
+
+⚠️ Keep the browser tab open during scraping!`;
         session.captchaUrl = url;
       }
       
       // Wait for CAPTCHA resolution before proceeding
       await waitForCaptchaResolution(sessionId, activeSessions);
-      console.log(`CAPTCHA resolved during pre-check, proceeding with scraping`);
+      console.log(`CAPTCHA resolved during pre-check, proceeding with fresh session`);
     } else {
       console.log(`No CAPTCHA detected during pre-check. Safe to proceed.`);
     }

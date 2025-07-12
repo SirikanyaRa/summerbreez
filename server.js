@@ -148,6 +148,7 @@ app.get('/api/progress/:sessionId', (req, res) => {
 // Handle CAPTCHA resolution notification
 app.post('/api/captcha-solved/:sessionId', (req, res) => {
   const { sessionId } = req.params;
+  const { userCookies, useFreshSession, timestamp, userAgent, resolved } = req.body;
   const session = activeSessions.get(sessionId);
   
   if (!session) {
@@ -155,18 +156,34 @@ app.post('/api/captcha-solved/:sessionId', (req, res) => {
   }
   
   console.log(`CAPTCHA resolution request received for session ${sessionId}`);
+  console.log(`Resolution timestamp: ${timestamp}, User Agent: ${userAgent?.substring(0, 50)}...`);
+  
+  // Store user's cookies if provided
+  if (userCookies && userCookies.trim()) {
+    session.userCookies = userCookies.trim();
+    console.log(`User cookies stored for session ${sessionId}: ${userCookies.substring(0, 100)}...`);
+    session.message = '✅ CAPTCHA solved with your browser cookies! Resuming scraping...';
+  } else if (useFreshSession) {
+    session.useFreshSession = true;
+    console.log(`Fresh session strategy requested for session ${sessionId}`);
+    session.message = '✅ CAPTCHA solved! Trying with fresh session strategy...';
+  } else {
+    console.log(`CAPTCHA resolution without specific strategy for session ${sessionId}`);
+    session.message = '✅ CAPTCHA solved! Implementing fresh session strategy...';
+  }
   
   // Update session to indicate CAPTCHA was solved
   session.captchaRequired = false;
   session.status = 'running';
-  session.message = '✅ CAPTCHA solved! Resuming scraping process...';
+  session.captchaSolvedAt = timestamp || Date.now();
   
   console.log(`CAPTCHA marked as resolved for session ${sessionId}`);
   
   res.json({ 
-    message: 'CAPTCHA resolution acknowledged',
+    message: session.userCookies ? 'CAPTCHA resolution with cookies acknowledged.' : 'CAPTCHA resolution acknowledged. Using fresh session strategy.',
     status: session.status,
-    captchaRequired: session.captchaRequired
+    captchaRequired: session.captchaRequired,
+    strategy: 'fresh_session_with_delays'
   });
 });
 

@@ -291,18 +291,40 @@
                 <!-- CAPTCHA Alert -->
                 <div id="captchaAlert" class="captcha-alert hidden">
                     <h3>🛑 CAPTCHA Detection</h3>
-                    <p><strong>The scraper has detected a CAPTCHA challenge!</strong></p>
+                    <p><strong>The scraper has detected a CAPTCHA challenge and needs your browser session to continue!</strong></p>
                     <div class="captcha-instructions">
-                        <p>Please follow these steps to continue:</p>
+                        <p><strong>📋 Follow these steps to continue:</strong></p>
                         <ol>
-                            <li>Click on the link below to open the target website</li>
-                            <li>Solve the CAPTCHA manually in your browser</li>
-                            <li>Wait for the page to load normally</li>
-                            <li>Come back here and click "Continue Scraping"</li>
+                            <li><strong>🔗 Click the link below</strong> to open the target website in a new tab</li>
+                            <li><strong>🧩 Solve the CAPTCHA</strong> manually in your browser (reCAPTCHA, image challenge, etc.)</li>
+                            <li><strong>⏳ Wait for the page to load</strong> normally after solving</li>
+                            <li><strong>🍪 Copy your browser cookies</strong> using the instructions below</li>
+                            <li><strong>📝 Paste the cookies</strong> in the text box and click "Continue with Cookies"</li>
                         </ol>
+                        <div class="cookie-instructions">
+                            <h4>🍪 How to get your browser cookies:</h4>
+                            <ol>
+                                <li>In the tab where you solved CAPTCHA, press <kbd>F12</kbd> to open DevTools</li>
+                                <li>Go to <strong>Application</strong> tab (Chrome) or <strong>Storage</strong> tab (Firefox)</li>
+                                <li>Click on <strong>Cookies</strong> → <strong>https://postcode.my</strong></li>
+                                <li>Copy ALL cookie values and paste them in format: <code>name1=value1; name2=value2;</code></li>
+                            </ol>
+                        </div>
                     </div>
-                    <p>Target URL: <a id="captchaUrl" href="#" target="_blank" class="captcha-link">Open in new tab</a></p>
-                    <button id="continueScraping" class="button">✅ Continue Scraping</button>
+                    <p><strong>Target URL:</strong> <a id="captchaUrl" href="#" target="_blank" class="captcha-link">🔗 Open Website in New Tab</a></p>
+                    
+                    <div class="cookie-input-section">
+                        <label for="userCookiesInput"><strong>🍪 Paste your cookies here after solving CAPTCHA:</strong></label>
+                        <textarea id="userCookiesInput" placeholder="Example: cf_clearance=abc123; JSESSIONID=def456; other_cookie=xyz789" rows="4" style="width: 100%; margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-family: monospace; font-size: 12px;"></textarea>
+                        <p style="font-size: 12px; color: #666; margin-bottom: 15px;">
+                            💡 <strong>Tip:</strong> You can also try clicking "Continue without Cookies" first - it might work if the CAPTCHA solution is still valid.
+                        </p>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button id="continueWithCookies" class="button" style="background: #28a745;">🍪 Continue with Cookies</button>
+                        <button id="continueWithoutCookies" class="button" style="background: #6c757d;">🔄 Try without Cookies</button>
+                    </div>
                 </div>
 
                 <div id="statusMessages"></div>
@@ -535,17 +557,33 @@
             }
         }
 
-        async function continueScraping() {
+        async function continueWithCookies() {
             if (!currentSessionId) {
                 console.error('No session ID available');
                 return;
             }
             
-            console.log('Sending CAPTCHA resolution for session:', currentSessionId);
+            const userCookies = document.getElementById('userCookiesInput').value.trim();
+            
+            if (!userCookies) {
+                addStatusMessage('❌ Please paste your browser cookies first!', 'error');
+                return;
+            }
+            
+            console.log('Sending CAPTCHA resolution with user cookies for session:', currentSessionId);
             
             try {
                 const response = await fetch(`/api/captcha-solved/${currentSessionId}`, {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userCookies: userCookies,
+                        timestamp: Date.now(),
+                        userAgent: navigator.userAgent,
+                        resolved: true
+                    })
                 });
                 
                 const result = await response.json();
@@ -553,7 +591,45 @@
                 
                 if (response.ok) {
                     hideCaptchaAlert();
-                    addStatusMessage('✅ CAPTCHA resolution acknowledged. Resuming scraping...', 'success');
+                    addStatusMessage('✅ CAPTCHA resolution with cookies acknowledged. Resuming scraping...', 'success');
+                } else {
+                    addStatusMessage(`Error: ${result.error || 'Failed to acknowledge CAPTCHA resolution'}`, 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error acknowledging CAPTCHA resolution:', error);
+                addStatusMessage(`Error acknowledging CAPTCHA resolution: ${error.message}`, 'error');
+            }
+        }
+
+        async function continueWithoutCookies() {
+            if (!currentSessionId) {
+                console.error('No session ID available');
+                return;
+            }
+            
+            console.log('Sending CAPTCHA resolution without cookies for session:', currentSessionId);
+            
+            try {
+                const response = await fetch(`/api/captcha-solved/${currentSessionId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        timestamp: Date.now(),
+                        userAgent: navigator.userAgent,
+                        resolved: true,
+                        useFreshSession: true
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('CAPTCHA resolution response:', result);
+                
+                if (response.ok) {
+                    hideCaptchaAlert();
+                    addStatusMessage('✅ CAPTCHA resolution acknowledged. Trying with fresh session...', 'success');
                 } else {
                     addStatusMessage(`Error: ${result.error || 'Failed to acknowledge CAPTCHA resolution'}`, 'error');
                 }
@@ -680,7 +756,8 @@
 
         // Event listeners
         document.getElementById('startScraping').addEventListener('click', startScraping);
-        document.getElementById('continueScraping').addEventListener('click', continueScraping);
+        document.getElementById('continueWithCookies').addEventListener('click', continueWithCookies);
+        document.getElementById('continueWithoutCookies').addEventListener('click', continueWithoutCookies);
         
         // Test function for CAPTCHA alert
         function testCaptchaAlert() {
