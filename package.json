@@ -18,7 +18,6 @@
     "deploy:heroku": "git push heroku main",
     "deploy:railway": "railway up",
     "deploy:railway-prepare": "railway-deploy.bat",
-    "deploy:railway-fixed": "railway-fixed-deploy.bat",
     "deploy:prepare": "node deploy-enhanced.sh",
     "logs:heroku": "heroku logs --tail",
     "logs:railway": "railway logs",
@@ -29,7 +28,7 @@
     "docker:logs": "docker-compose logs -f",
     "health": "node healthcheck.js",
     "diagnose": "node diagnose.js",
-    "solve-captcha": "node script/captcha-solver.js --show",
+    "solve-captcha": "echo 'Puppeteer disabled in deployment version'",
     "verify-url": "node script/captcha-verifier.js"
   },
   "engines": {
