@@ -504,7 +504,7 @@
                 // Handle CAPTCHA requirement
                 if (progress.captchaRequired && progress.status === 'captcha_required') {
                     console.log('CAPTCHA required, showing alert for:', progress.captchaUrl);
-                    showCaptchaAlert(progress.captchaUrl);
+                    showCaptchaAlert(progress.captchaUrl, progress.hcaptchaConfig);
                 } else if (!progress.captchaRequired && progress.status !== 'captcha_required') {
                     hideCaptchaAlert();
                 }
@@ -534,14 +534,41 @@
             }
         }
 
-        function showCaptchaAlert(url) {
+        function showCaptchaAlert(url, hcaptchaConfig = null) {
             console.log('Showing CAPTCHA alert for URL:', url);
+            console.log('hCaptcha config:', hcaptchaConfig);
+            
             const alert = document.getElementById('captchaAlert');
             const urlLink = document.getElementById('captchaUrl');
             
             if (alert && urlLink) {
                 urlLink.href = url;
                 urlLink.textContent = url;
+                
+                // Add hCaptcha specific information if available
+                const instructionsDiv = alert.querySelector('.captcha-instructions');
+                if (hcaptchaConfig && instructionsDiv) {
+                    // Remove existing hCaptcha info
+                    const existingHcaptchaInfo = alert.querySelector('.hcaptcha-info');
+                    if (existingHcaptchaInfo) {
+                        existingHcaptchaInfo.remove();
+                    }
+                    
+                    const hcaptchaInfoDiv = document.createElement('div');
+                    hcaptchaInfoDiv.className = 'hcaptcha-info';
+                    hcaptchaInfoDiv.style.cssText = 'background: #f8f9fa; padding: 15px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #17a2b8;';
+                    hcaptchaInfoDiv.innerHTML = `
+                        <h4 style="color: #17a2b8; margin-bottom: 10px;">🧩 hCaptcha Challenge Details:</h4>
+                        <ul style="margin: 0; padding-left: 20px; line-height: 1.6;">
+                            <li><strong>Site Key:</strong> <code>${hcaptchaConfig.sitekey || 'c6fddc4c-b0dd-42a7-9c25-a5384ae1a72b'}</code></li>
+                            <li><strong>Challenge Type:</strong> ${hcaptchaConfig.challenge_type || 'image'}</li>
+                            <li><strong>Pass Required:</strong> ${hcaptchaConfig.pass_required || false}</li>
+                            ${hcaptchaConfig.challenge_url ? `<li><strong>Direct Challenge:</strong> <a href="${hcaptchaConfig.challenge_url}" target="_blank" style="color: #007bff;">Open Challenge</a></li>` : ''}
+                        </ul>
+                    `;
+                    instructionsDiv.appendChild(hcaptchaInfoDiv);
+                }
+                
                 alert.classList.remove('hidden');
                 console.log('CAPTCHA alert shown successfully');
             } else {

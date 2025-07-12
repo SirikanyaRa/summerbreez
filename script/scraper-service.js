@@ -22,6 +22,44 @@ const userAgents = [
 let sessionCookies = '';
 let lastCookieUpdate = Date.now();
 
+// Helper to check hCaptcha configuration
+const checkHCaptchaConfig = async () => {
+  try {
+    console.log('🔍 Checking hCaptcha configuration for postcode.my...');
+    
+    const response = await axios.post("https://api.hcaptcha.com/checksiteconfig", null, {
+      params: {
+        v: 'ca737f0560add5b36452dede62296c160c23bb19',
+        host: 'postcode.my',
+        sitekey: 'c6fddc4c-b0dd-42a7-9c25-a5384ae1a72b',
+        sc: '1',
+        swa: '1',
+        spst: '1'
+      },
+      headers: {
+        "accept": "application/json",
+        "accept-language": "en-US,en;q=0.9",
+        "content-type": "text/plain",
+        "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-site",
+        "cookie": sessionCookies || "hmt_id=888c9f0b-64ca-4e13-a250-7cd399271944",
+        "Referer": "https://newassets.hcaptcha.com/"
+      },
+      timeout: 10000
+    });
+    
+    console.log('🧩 hCaptcha Config Response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.log('⚠️ hCaptcha config check failed:', error.message);
+    return null;
+  }
+};
+
 // Helper to reset cookies when CAPTCHA is detected
 const resetSessionCookies = () => {
   sessionCookies = '';
@@ -146,13 +184,17 @@ const fetchWithRetry = async (url, maxRetries = 3, baseDelay = 2000, sessionId, 
           matchedPatterns: captchaPatterns.filter(pattern => pattern.test(data)).map(p => p.source)
         });
         
+        // Get hCaptcha configuration details
+        const hcaptchaConfig = await checkHCaptchaConfig();
+        
         // Reset session cookies when CAPTCHA is detected
         resetSessionCookies();
         
         if (session) {
           session.captchaRequired = true;
           session.status = 'captcha_required';
-          session.message = `🛑 CAPTCHA detected for ${url}. Please follow these steps:
+          
+          let captchaMessage = `🛑 CAPTCHA detected for ${url}. Please follow these steps:
 
 1. 📱 Open this exact URL in a NEW TAB: ${url}
 2. 🧩 Solve the CAPTCHA challenge on that page
@@ -160,7 +202,22 @@ const fetchWithRetry = async (url, maxRetries = 3, baseDelay = 2000, sessionId, 
 
 🔧 IMPORTANT: This will automatically share your solved CAPTCHA session with the scraper.
 ⏰ You have 10 minutes to complete this process.`;
+
+          // Add hCaptcha specific information if available
+          if (hcaptchaConfig) {
+            captchaMessage += `\n\n🧩 hCaptcha Details:
+- Site Key: ${hcaptchaConfig.sitekey || 'c6fddc4c-b0dd-42a7-9c25-a5384ae1a72b'}
+- Challenge Type: ${hcaptchaConfig.challenge_type || 'image'}
+- Pass Required: ${hcaptchaConfig.pass_required || false}`;
+
+            if (hcaptchaConfig.challenge_url) {
+              captchaMessage += `\n- Direct Challenge: ${hcaptchaConfig.challenge_url}`;
+            }
+          }
+          
+          session.message = captchaMessage;
           session.captchaUrl = url;
+          session.hcaptchaConfig = hcaptchaConfig; // Store for frontend use
         }
         
         console.log(`Waiting for CAPTCHA resolution for session ${sessionId}`);
