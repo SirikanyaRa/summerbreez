@@ -1,15 +1,18 @@
-FROM node:18-alpine
-
-# Install security updates and required packages
-RUN apk update && apk upgrade && \
-    apk add --no-cache dumb-init
+FROM node:18-slim
 
 # Set working directory
 WORKDIR /app
 
-# Create non-root user early
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S scraper -u 1001 -G nodejs
+# Install only minimal necessary packages
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    dumb-init && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -g 1001 nodejs && \
+    useradd -u 1001 -g nodejs -s /bin/bash -m scraper
 
 # Copy package files first for better caching
 COPY --chown=scraper:nodejs package*.json ./
@@ -18,10 +21,9 @@ COPY --chown=scraper:nodejs package*.json ./
 RUN echo '{"name":"postcode-scraper-app","version":"1.0.0","type":"module","dependencies":{"express":"^4.18.2","axios":"^1.6.0","cheerio":"^1.0.0-rc.12","fs-extra":"^11.1.1","cors":"^2.8.5"}}' > deployment-package.json && \
     mv deployment-package.json package.json
 
-# Install dependencies without Puppeteer
+# Install dependencies
 RUN npm install && \
-    npm cache clean --force && \
-    rm -rf /tmp/*
+    npm cache clean --force
 
 # Copy application code
 COPY --chown=scraper:nodejs . .
@@ -30,18 +32,17 @@ COPY --chown=scraper:nodejs . .
 RUN mkdir -p data logs temp && \
     chown -R scraper:nodejs /app
 
+# Set production environment
+ENV NODE_ENV=production
+
 # Switch to non-root user
 USER scraper
 
 # Expose port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD node healthcheck.js
-
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
 # Start application
-CMD ["npm", "start"]
+CMD ["node", "server.js"]

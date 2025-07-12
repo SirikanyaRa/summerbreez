@@ -1,12 +1,29 @@
 // Direct captcha solver script using Puppeteer
 // This can be run independently when users encounter captcha issues
+// In production deployment, this runs in a limited mode without Puppeteer
 
-import puppeteer from 'puppeteer';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import readline from 'readline';
 import { verifyUrlAccess } from './captcha-verifier.js';
+
+// Check if we're in production mode
+const isProductionEnvironment = process.env.NODE_ENV === 'production';
+
+// Try to import puppeteer, but don't fail if it's not available (in production)
+let puppeteer = null;
+if (!isProductionEnvironment) {
+  try {
+    const puppeteerModule = await import('puppeteer');
+    puppeteer = puppeteerModule.default || puppeteerModule;
+    console.log('Puppeteer loaded successfully for local development.');
+  } catch (error) {
+    console.log('Puppeteer is not available. Running in limited mode.');
+  }
+} else {
+  console.log('Running in production mode without Puppeteer.');
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +46,18 @@ const prompt = (question) => {
 // Main function to solve captchas
 const solveCaptcha = async (url, isHeadless = false) => {
   console.log(`🤖 Starting captcha solver for URL: ${url}`);
+  
+  // Check if puppeteer is available
+  if (!puppeteer) {
+    console.error('⛔ ERROR: Puppeteer is not available. Cannot solve CAPTCHAs automatically.');
+    console.log('Please use the CAPTCHA Helper Tool in your browser instead.');
+    return { 
+      success: false, 
+      message: 'Puppeteer not available in this environment',
+      cookies: null 
+    };
+  }
+  
   console.log('Launching browser...');
   
   // Launch browser with stealth options
@@ -186,6 +215,15 @@ const main = async () => {
   console.log('🤖 Postcode.my CAPTCHA Solver 🧩');
   console.log('-----------------------------');
   
+  // Check if puppeteer is available first
+  if (!puppeteer) {
+    console.error('⛔ ERROR: Puppeteer is not available in this environment.');
+    console.log('This script requires Puppeteer to function.');
+    console.log('In production environments, please use the web-based CAPTCHA Helper Tool instead.');
+    process.exit(1);
+    return;
+  }
+  
   // Get URL from command line or prompt
   let url = process.argv[2];
   if (!url) {
@@ -218,7 +256,7 @@ const main = async () => {
     }
   } else {
     console.log('\n❌ Failed to solve CAPTCHA');
-    console.log('Error:', result.error);
+    console.log('Message:', result.message || result.error);
   }
   
   process.exit(0);
