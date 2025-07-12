@@ -1,4 +1,5 @@
-const axios = require('axios');
+// Test summary for CAPTCHA cookie solution
+// No imports needed for this summary test
 
 console.log('🧪 Testing CAPTCHA Cookie Solution Implementation');
 console.log('=====================================================');
