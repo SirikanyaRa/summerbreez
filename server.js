@@ -4,6 +4,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { scrapePostcodeDetails } from './script/scraper-service.js';
+import { addCaptchaVerifierRoutes } from './script/captcha-verifier.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,20 +21,10 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
-// Request logging middleware
-app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.path} - ${req.ip || 'unknown'}`);
-  next();
+// Add direct route for the captcha helper page
+app.get('/captcha-helper', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'captcha-helper.html'));
 });
-
-// Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  credentials: true
-}));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.static('public'));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -44,6 +35,9 @@ app.use((req, res, next) => {
 
 // Store active scraping sessions
 const activeSessions = new Map();
+
+// Add captcha verifier routes
+addCaptchaVerifierRoutes(app);
 
 // Session cleanup - remove completed/errored sessions after 1 hour
 setInterval(() => {
@@ -326,3 +320,6 @@ function gracefulShutdown(signal) {
     process.exit(1);
   }, 30000);
 }
+
+// Add CAPTCHA verifier routes
+addCaptchaVerifierRoutes(app, activeSessions);

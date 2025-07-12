@@ -7,6 +7,7 @@ A web application for scraping detailed postcode information from postcode.my wi
 - 🗂️ **File Management**: Browse and select from available data files
 - 🚀 **Smart Scraping**: Automated data extraction with anti-detection measures
 - 🛡️ **CAPTCHA Handling**: Intelligent detection and manual resolution support
+- 🧩 **Direct CAPTCHA Solver**: New tool for solving CAPTCHAs directly (see below)
 - 📊 **Real-time Progress**: Live progress tracking and status updates
 - 📋 **Results Preview**: View scraped data in real-time
 - ⚡ **Background Processing**: Non-blocking scraping operations
@@ -335,3 +336,20 @@ REQUEST_DELAY_MAX=8000
 ---
 
 Happy scraping! 🚀
+
+## CAPTCHA Issues? Try our new solution!
+
+If you encounter CAPTCHA issues or pages not displaying correctly, we have new tools:
+
+1. **Web-based CAPTCHA Helper**
+   Navigate to `http://localhost:3000/captcha-helper` for a user-friendly interface to solve CAPTCHAs
+
+2. **Windows Users - One-Click Solution**
+   Run `solve-captcha.bat` and follow the prompts
+
+3. **Command Line Solution**
+   ```bash
+   npm run solve-captcha -- https://postcode.my/your-problematic-url
+   ```
+
+For detailed instructions, see [DIRECT_CAPTCHA_SOLUTION.md](./DIRECT_CAPTCHA_SOLUTION.md)

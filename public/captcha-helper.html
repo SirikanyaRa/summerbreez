@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Postcode.my CAPTCHA Helper</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .captcha-frame {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px 0;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .button.green {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        
+        .steps {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .steps ol {
+            margin-left: 20px;
+            line-height: 1.6;
+        }
+        
+        .steps li {
+            margin-bottom: 10px;
+        }
+        
+        .notification {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .notification.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .url-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        code {
+            background: #f0f3ff;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+            border: 1px solid #dde;
+        }
+        
+        .success-message {
+            display: none;
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .cookies-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .cookies-output {
+            width: 100%;
+            min-height: 100px;
+            font-family: monospace;
+            background: #f0f3ff;
+            border: 1px solid #dde;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Postcode.my CAPTCHA Helper</h1>
+            <p>Solve CAPTCHA issues and continue with your data extraction</p>
+            <div style="margin-top: 15px;">
+                <a href="/" class="button" style="background: rgba(255,255,255,0.2); font-size: 0.9rem; padding: 8px 16px;">
+                    ← Return to Main Application
+                </a>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2>Solve CAPTCHA Directly</h2>
+                <p>Use the form below to open and solve a CAPTCHA for a specific postcode.my URL:</p>
+                
+                <input type="text" id="urlInput" class="url-input" 
+                    placeholder="Enter postcode.my URL (e.g., https://postcode.my/pahang-kuantan-jalan-aspa-26080.html)"
+                    value="https://postcode.my/pahang-kuantan-jalan-aspa-26080.html">
+                
+                <button id="loadButton" class="button">Load URL in Frame</button>
+                <button id="openButton" class="button">Open in New Tab</button>
+            </div>
+            
+            <div id="notification" class="notification"></div>
+            
+            <div class="section">
+                <h2>CAPTCHA Frame</h2>
+                <p>The website will load below. Solve any CAPTCHA that appears:</p>
+                <iframe id="captchaFrame" class="captcha-frame" sandbox="allow-scripts allow-same-origin allow-forms" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                
+                <div class="steps">
+                    <h3>Instructions:</h3>
+                    <ol>
+                        <li>Click "Load URL in Frame" to load the postcode.my page</li>
+                        <li>If a CAPTCHA appears, solve it in the frame above</li>
+                        <li>Once solved, the page should load normally with postcode information</li>
+                        <li>If the frame doesn't work, try "Open in New Tab" instead</li>
+                        <li>After solving in a new tab, return here and click "Check URL Status"</li>
+                    </ol>
+                </div>
+                
+                <button id="checkButton" class="button green">Check URL Status</button>
+            </div>
+            
+            <div id="successMessage" class="success-message">
+                <h3>✅ CAPTCHA Successfully Solved!</h3>
+                <p>The page is now loading normally. You can return to the main application.</p>
+                <button id="returnButton" class="button">Return to Main App</button>
+            </div>
+            
+            <div class="cookies-section">
+                <h3>Your Browser Cookies (After Solving CAPTCHA)</h3>
+                <p>These cookies may help bypass CAPTCHA in future requests:</p>
+                <div id="cookiesOutput" class="cookies-output">Cookies will appear here after solving CAPTCHA...</div>
+                <button id="copyCookiesButton" class="button">Copy Cookies</button>
+                <p><small>Note: These cookies can be used in the main application if needed.</small></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlInput = document.getElementById('urlInput');
+            const loadButton = document.getElementById('loadButton');
+            const openButton = document.getElementById('openButton');
+            const checkButton = document.getElementById('checkButton');
+            const returnButton = document.getElementById('returnButton');
+            const captchaFrame = document.getElementById('captchaFrame');
+            const notification = document.getElementById('notification');
+            const successMessage = document.getElementById('successMessage');
+            const cookiesOutput = document.getElementById('cookiesOutput');
+            const copyCookiesButton = document.getElementById('copyCookiesButton');
+            
+            // Load URL in the iframe
+            loadButton.addEventListener('click', function() {
+                const url = urlInput.value.trim();
+                
+                if (!url || !url.startsWith('https://postcode.my/')) {
+                    showNotification('Please enter a valid postcode.my URL', 'error');
+                    return;
+                }
+                
+                captchaFrame.src = url;
+                showNotification('Loading URL in frame...', 'success');
+                
+                // Update cookies after a delay to allow page to load
+                setTimeout(updateCookies, 5000);
+            });
+            
+            // Open URL in new tab
+            openButton.addEventListener('click', function() {
+                const url = urlInput.value.trim();
+                
+                if (!url || !url.startsWith('https://postcode.my/')) {
+                    showNotification('Please enter a valid postcode.my URL', 'error');
+                    return;
+                }
+                
+                window.open(url, '_blank');
+                showNotification('URL opened in new tab. After solving CAPTCHA, return here and click "Check URL Status"', 'success');
+            });
+            
+            // Check if URL is accessible without CAPTCHA
+            checkButton.addEventListener('click', async function() {
+                const url = urlInput.value.trim();
+                
+                if (!url || !url.startsWith('https://postcode.my/')) {
+                    showNotification('Please enter a valid postcode.my URL', 'error');
+                    return;
+                }
+                
+                showNotification('Checking URL status...', 'success');
+                
+                try {
+                    // Use the backend verify-url API endpoint
+                    const response = await fetch('/api/verify-url', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            url: url,
+                            cookies: document.cookie
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server responded with status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.isAccessible) {
+                        successMessage.style.display = 'block';
+                        showNotification('✅ Success! URL is now accessible without CAPTCHA', 'success');
+                    } else {
+                        showNotification(`⚠️ URL still has access issues: ${result.message}`, 'error');
+                    }
+                    
+                    // Update cookies regardless of result
+                    updateCookies();
+                    
+                } catch (error) {
+                    showNotification('Error checking URL: ' + error.message, 'error');
+                }
+            });
+            
+            // Return to main app
+            returnButton.addEventListener('click', function() {
+                window.location.href = '/';
+            });
+            
+            // Copy cookies to clipboard
+            copyCookiesButton.addEventListener('click', function() {
+                const cookiesText = cookiesOutput.innerText;
+                navigator.clipboard.writeText(cookiesText)
+                    .then(() => {
+                        showNotification('Cookies copied to clipboard!', 'success');
+                    })
+                    .catch(err => {
+                        showNotification('Error copying cookies: ' + err.message, 'error');
+                    });
+            });
+            
+            // Update cookies display
+            function updateCookies() {
+                const allCookies = document.cookie;
+                cookiesOutput.innerText = allCookies || 'No cookies available';
+                
+                // If no cookies found from document.cookie (which is common due to browser security),
+                // try to get them via a server-side request in a real implementation
+                if (!allCookies || allCookies.trim() === '') {
+                    // Request cookies from the server in a real implementation
+                    // For now we'll show some helpful text
+                    cookiesOutput.innerText = 'To view and copy cookies after solving CAPTCHA:\n\n' +
+                        '1. Press F12 to open browser DevTools\n' +
+                        '2. Go to the "Application" tab (Chrome) or "Storage" tab (Firefox)\n' +
+                        '3. Click on "Cookies" in the sidebar\n' +
+                        '4. Find and select "https://postcode.my"\n' +
+                        '5. Copy key cookies like "cf_clearance" and "JSESSIONID"\n\n' +
+                        'Example cookie format: cf_clearance=abc123; JSESSIONID=xyz789;';
+                }
+            }
+            
+            // Show notification
+            function showNotification(message, type = 'success') {
+                notification.textContent = message;
+                notification.className = 'notification';
+                
+                if (type === 'error') {
+                    notification.classList.add('error');
+                }
+                
+                notification.style.display = 'block';
+                
+                // Hide after 5 seconds
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>

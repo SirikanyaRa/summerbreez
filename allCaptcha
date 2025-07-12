@@ -1,0 +1,95 @@
+fetch("https://postcode.my/pahang-kuantan-jalan-aspa-26080.html", {
+  "headers": {
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "accept-language": "en-US,en;q=0.9",
+    "cache-control": "max-age=0",
+    "priority": "u=0, i",
+    "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "document",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-site": "none",
+    "sec-fetch-user": "?1",
+    "upgrade-insecure-requests": "1",
+    "cookie": "__gads=ID=17fb104739d2dc74:T=1749712352:RT=1752301162:S=ALNI_MZavjh2eBhlaP5X-YKc14gBCJOyIQ; __gpi=UID=0000112a989ac209:T=1749712352:RT=1752301162:S=ALNI_MZYsbSN1TYye3KmqEyZnt9NssdniA; __eoi=ID=5c461d87e22b2c80:T=1749712352:RT=1752301162:S=AA-AfjaMEpKhdmuEPYEwiESScViS; sc_is_visitor_unique=rx8944788.1752301205.C942C58A2ADD49BF81189148A5D94601.65.43.31.27.22.15.9.8.6; FCNEC=%5B%5B%22AKsRol9uxXdJh8gq1xnzqeSWXFYKcjTiSgFmmRU2AwimT3Diwj9VRMpWVOgn1jhTeiiVaDUwtvBirO-vBd5lqtKFmzfJoYI1oC8IX9_5O1r0ZymhOudTuat64Eynlk_IS41wJyyF-X51YHL0PYKMSlMDdi4yP5vKnw%3D%3D%22%5D%5D"
+  },
+  "body": null,
+  "method": "GET"
+}); ;
+fetch("https://postcode.my/cdn-cgi/scripts/7d0fa10a/cloudflare-static/rocket-loader.min.js", {
+  "headers": {
+    "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "Referer": "https://postcode.my/pahang-kuantan-jalan-aspa-26080.html"
+  },
+  "body": null,
+  "method": "GET"
+}); ;
+fetch("https://js.hcaptcha.com/1/api.js", {
+  "headers": {
+    "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "Referer": "https://postcode.my/"
+  },
+  "body": null,
+  "method": "GET"
+}); ;
+fetch("https://newassets.hcaptcha.com/captcha/v1/ca737f0560add5b36452dede62296c160c23bb19/static/hcaptcha.html", {
+  "headers": {
+    "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "upgrade-insecure-requests": "1",
+    "Referer": "https://postcode.my/"
+  },
+  "body": null,
+  "method": "GET"
+}); ;
+fetch("https://newassets.hcaptcha.com/captcha/v1/ca737f0560add5b36452dede62296c160c23bb19/static/hcaptcha.html", {
+  "headers": {
+    "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "upgrade-insecure-requests": "1",
+    "Referer": "https://postcode.my/"
+  },
+  "body": null,
+  "method": "GET"
+}); ;
+fetch("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABmJLR0QA/wD/AP+gvaeTAAAC00lEQVR4nO2aTU8TQRyHn39bIdXEm3jwLQhefPkAJorYLYslIF64ohwM8eQH0A/gzYSLIRooxBORKJr4Ultq4smz8YgQb3ow4YAmUHY8IEpgd7vQ3e0smee4+5/uPL+daXdmCwaDwWAwGAwGg8FgMBgM+wBr0u7JFe17QWrTUXcmbqxJuwdhTpDejsHO7Ne5hbJf/b4KYFMeJAuAcKleCPsmgB3ymwiX2m901BZfLHx0a5eKpXcR4ykPgPqdEvnk1Vai7Fgc1JMXkevlm+88p0CiA2hUHhIcQBjykNAAwpKHBAYQpjwkLICw5SFBAUQhDwkJICp5SEAAUcqD5gFELQ8aBxCHPGgaQFzyoGEAccpDwNXgxZmhLCr6sPJTvXk/eRSDYcpDgAAGxgcOZleW31hF+1GUIViTdo9S6qXfna+MlN6HfV3fAApjhdZfrauzInIFkdGoQoh72G/FM4ChmaGW1cPOM+Dav4MRhNBMefAJ4OfK8hjQv+OEyKhV7H0YRgjNmPPb8QxgndQDYMn1pHC30ZHQrDm/Hc8APoy8XVK1dDew6FrQwHTIFe0uRJ43a9hvpW7nc0/6TklmvQq0uxYoNV65VbqDoIJcMFe0uwR5DRxy+bBY5SHgg1B+On9SOZkqqNOuBQFD0E0edvEkuBFCeh7ocC2oE4KO8rCL9wLl4fK3tKOuAguuBT7fCbrKwx7WAvaEfcJJybyCTteCbSNBZ3nY42Ko+2nheKbmVOuFkJuyL+ssDw2sBnNT/cdErVWBMx4ls6D6/B5y4vidr0dDT3PWY+soBzLzwNngrfS485s09HK0crvynbVaDvgSrIVe8hDShsjfkVABznlX6ScPIe4I2dN2W82RisD5nWf1lIeQt8Tsabtt3aEMcuH/UX3lIeQ/SJSGSz9anLQF6vPGEb3lIaJN0cJE4ciaOK9IcV9n+WiJYRPVYDAYDAaDoRH+ALzfixyrasnFAAAAAElFTkSuQmCC", {
+  "referrer": "",
+  "body": null,
+  "method": "GET"
+}); ;
+fetch("https://api.hcaptcha.com/checksiteconfig?v=ca737f0560add5b36452dede62296c160c23bb19&host=postcode.my&sitekey=c6fddc4c-b0dd-42a7-9c25-a5384ae1a72b&sc=1&swa=1&spst=1", {
+  "headers": {
+    "accept": "application/json",
+    "accept-language": "en-US,en;q=0.9",
+    "content-type": "text/plain",
+    "priority": "u=1, i",
+    "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site",
+    "sec-fetch-storage-access": "active",
+    "cookie": "hmt_id=888c9f0b-64ca-4e13-a250-7cd399271944; __cf_bm=qAleGrK0aoTNcVISm_Hivd5rd3GMB8oxb0z2rxDdJyQ-1752301299-1.0.1.1-LOrmIaaILF.AuRj2ZbvaPskmQnKIhRLiTGegOus0km2but.6BFMqg3lrQiy_sBfkcWD20FJKl57pfvsnrw1zigZfm9RQeyyaMkGAzl8tvC8",
+    "Referer": "https://newassets.hcaptcha.com/"
+  },
+  "body": null,
+  "method": "POST"
+}); ;
+fetch("https://newassets.hcaptcha.com/c/356df3c78cec2b5f1585b87bd1a13f22961ab2bd8593f7fcd6a87efbfc0f1719/hsw.js", {
+  "headers": {
+    "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "Referer": "https://newassets.hcaptcha.com/captcha/v1/ca737f0560add5b36452dede62296c160c23bb19/static/hcaptcha.html"
+  },
+  "body": null,
+  "method": "GET"
+});
